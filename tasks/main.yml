@@ -1,0 +1,62 @@
+############
+### Swap ###
+############
+---
+- stat:
+    path: /swapfile
+  register: swap_file
+
+- name: Disable swap space if present
+  become: yes
+  command: swapoff -a
+  when: swap_file.stat.exists
+
+- name: Remove swap space if present
+  become: yes
+  file:
+    path: "/swapfile"
+    state: absent  
+  when: swap_file.stat.exists
+
+- name: Create swap space
+  become: yes
+  command: fallocate -l {{ swap_size }} /swapfile
+  when: swap_size and swap_size != ''
+
+- name: Adjust permissions
+  become: yes
+  file:
+    path: /swapfile
+    owner: root
+    group: root
+    mode: 600
+  when: swap_size and swap_size != ''
+
+- name: Make swap
+  become: yes
+  command: mkswap /swapfile
+  when: swap_size and swap_size != ''
+
+- name: Add to fstab
+  become: yes
+  action: lineinfile dest=/etc/fstab regexp="swapfile" line="/swapfile none swap sw 0 0" state=present
+  when: swap_size and swap_size != ''
+
+- name: Turn swap on
+  become: yes
+  command: swapon -a
+  when: swap_size and swap_size != ''
+
+- name: Set swappiness
+  become: yes
+  sysctl:
+    name: vm.swappiness
+    value: "{{ vm_swappiness }}"
+  when: vm_swappiness and vm_swappiness != ''
+
+- name: Set cache pressure
+  become: yes
+  sysctl:
+    name: vm.vfs_cache_pressure
+    value: "{{ vm_vfs_cache_pressure }}"
+  when: vm_vfs_cache_pressure and vm_vfs_cache_pressure != ''

@@ -1,0 +1,4 @@
+---
+swap_size: "1G"
+vm_swappiness: "1"
+vm_vfs_cache_pressure: "50"
